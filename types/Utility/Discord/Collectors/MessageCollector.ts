@@ -1,5 +1,6 @@
 import {
-    CollectorOptions, AxonClient, LibMessage, LibTextableChannel, Collector, CollectorContainer,
+    CollectorOptions, CollectorFullOptions, AxonClient, LibMessage, LibTextableChannel, Collector,
+    Collection, CollectorContainer,
 } from '../../..';
 
 /**
@@ -11,7 +12,7 @@ import {
  * @extends EventEmitter
  */
 export declare class MessageCollector extends Collector<LibMessage> {
-    public options: CollectorOptions;
+    public options: Required<CollectorOptions<LibMessage>>;
     public onMessageCreate: (msg: LibMessage) => void;
     public onMessageDelete: (msg: LibMessage) => void;
     public onMessageUpdate: (msg: LibMessage, msg1: LibMessage) => void
@@ -24,20 +25,24 @@ export declare class MessageCollector extends Collector<LibMessage> {
      * const collector = new MessageCollector(this.axon, { count: 10, ignoreBots: false });
      * @memberof MessageCollector
      */
-    constructor(client: AxonClient, options?: CollectorOptions);
+    constructor(client: AxonClient, options?: CollectorOptions<LibMessage>);
 
+    setListeners(): void;
+    unsetListeners(): void;
     /**
      * Runs the message collector
-     *
-     * @param channel The channel object to listen to
-     * @param options The options for the message collector
-     * @returns Map of messages collected.
-     *
      * @example
-     * const messages = await collector.run(msg.channel, { caseInsensitive: false });
+     * const messages = await collector.run({ caseInsensitive: false });
      * @memberof MessageCollector
      */
-    public run<T extends LibTextableChannel>(channel: T, options?: CollectorOptions): Promise<Map<string, LibMessage<T>>>;
+    public run<T extends LibTextableChannel>(options?: CollectorFullOptions<LibMessage<T>>): Promise<Collection<LibMessage<T>>>;
+    /**
+     * Runs the message collector
+     * @example
+     * const messages = await collector.collect({ caseInsensitive: false });
+     * @memberof MessageCollector
+     */
+    public collect<T extends LibTextableChannel>(options?: CollectorFullOptions<LibMessage<T>>): CollectorContainer<LibMessage<T>>;
     /**
      * Get all CollectorContainers that will collect from this particular message
      * @memberof MessageCollector

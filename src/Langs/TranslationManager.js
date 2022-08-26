@@ -4,8 +4,7 @@ import defaultLang from '../Configs/lang.json';
  * @typedef {import('../Langs/MessageManager').default} MessageManager
  * @typedef {Object.<string, AxonLanguageResponse>} Languages
  * @typedef {{
- * ERR_BOT_PERM?: String, ERR_CALLER_PERM?: String, ERR_DESTINATION_PERM?: String,
- * ERR_COOLDOWN?: String, ERR_GENERAL?: String, [key: String]: String|undefined
+ * [key: String]: String | AxonLanguageResponse
  * }} AxonLanguageResponse
  */
 
@@ -53,7 +52,7 @@ class TranslationManager {
     /**
      * Return all messages for the specified lang or the default lang if no specified lang.
      *
-     * @param {String} lang
+     * @param {String} [lang]
      * @returns {AxonLanguageResponse}
      * @memberof TranslationManager
      */
@@ -63,15 +62,24 @@ class TranslationManager {
 
     /**
      * Return a specified message for the specified lang or for the default lang if no specified lang
-     * If specified message doesn't exist in the specified lang return the specified message for the default lang instead.
+     * If the specified path or message doesn't exist in the specified lang return the specified path or message for the default lang instead.
      *
      * @param {String} message
-     * @param {String} lang
+     * @param {String} [lang]
      * @returns {String}
      * @memberof TranslationManager
      */
     getMessage(message, lang) {
-        return this.getMessages(lang)[message] || this.getMessages(this.lang)[message];
+        const paths = message.split('.');
+        let toReturn = this.getMessages(lang) || this.getMessages(this.lang);
+
+        for (const elem of paths) {
+            if (!toReturn[elem] ) {
+                return paths.reduce( (acc, e) => (acc = acc[e] ), this.getMessages(this.lang) );
+            }
+            toReturn = toReturn[elem];
+        }
+        return toReturn;
     }
 }
 

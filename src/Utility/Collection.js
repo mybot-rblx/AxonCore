@@ -57,7 +57,7 @@ class Collection extends Store {
      *
      * @param {String} key - The ID of the object
      * @param {T} value - The object data
-     * @param {Boolean} replace - Whether to replace an existing object with the same ID
+     * @param {Boolean} [replace] - Whether to replace an existing object with the same ID
      * @returns {T} The existing or newly created object
      * @memberof Collection
      */
@@ -74,24 +74,8 @@ class Collection extends Store {
         return value;
     }
 
-    /**
-     * Remove an object
-     *
-     * @param {String} key - The ID of the object
-     * @returns {T} The removed object, or null if nothing was removed
-     * @memberof Collection
-     */
-    remove(key) {
-        const item = this.get(key);
-        if (!item) {
-            return null;
-        }
-        this.delete(key);
-        return item;
-    }
-
     toString() {
-        return `[Collection<${this.baseObject.name}>]`;
+        return `[Collection<${this.baseObject && this.baseObject.name}>]`;
     }
 }
 

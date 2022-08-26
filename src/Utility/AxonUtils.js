@@ -120,7 +120,7 @@ class AxonUtils {
      *
      * @param {String} type - Type of the webhook [status, loader, error, misc]
      * @param {Embed|EmbedBase} embed - Embed object
-     * @param {String} opt - Optional string to use as bot username
+     * @param {String} [opt] - Optional string to use as bot username
      * @memberof AxonUtils
      */
     triggerWebhook(type, embed, opt) {
@@ -308,9 +308,9 @@ class AxonUtils {
                 /* Delete the message automatically */
                 if (message && options.delete) {
                     if (options.delay) {
-                        this.utils.sleep(options.delay).then( () => this.library.message.delete(message).catch(this.logger.warn) );
+                        this.utils.sleep(options.delay).then( () => this.library.message.delete(message).catch( (err) => this.logger.warn(err) ) );
                     } else {
-                        this.library.message.delete(message).catch(this.logger.warn);
+                        this.library.message.delete(message).catch( (err) => this.logger.warn(err) );
                     }
                 }
                 return message;

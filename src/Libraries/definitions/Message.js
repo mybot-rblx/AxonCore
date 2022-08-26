@@ -21,6 +21,16 @@ class Message {
     // **** GETTERS / SETTERS **** //
 
     /**
+     * If author is a bot
+     * @param {Message} message
+     * @returns {Boolean}
+     * @memberof Message
+     */
+    isAuthorBot(message) {
+        return this.getAuthor(message).bot;
+    }
+
+    /**
      * Message ID
      * @param {Message} message
      * @returns {String}
@@ -74,7 +84,7 @@ class Message {
     /**
      * Member who sent the message
      * @param {Message} message
-     * @returns {Member}
+     * @returns {Member?}
      * @memberof Message
      */
     getMember(message) {
@@ -84,7 +94,7 @@ class Message {
     /**
      * Member ID who sent the message
      * @param {Message} message
-     * @returns {String}
+     * @returns {String|null}
      * @memberof Message
      */
     getMemberID(message) {

@@ -19,7 +19,7 @@ class Store {
     /**
      * Creates an instance of Store.
      *
-     * @param {Map<string, T>} cache - Key => Value data structure
+     * @param {Map<string, T>} [cache] - Key => Value data structure
      * @memberof Store
      */
     constructor(cache) {
@@ -225,6 +225,40 @@ class Store {
             }
         }
         return this;
+    }
+
+    /**
+     * Removes from the Store all element that satisfy the function in parameter and returns all elements deleted
+     *
+     * @param {(value: T, key: String) => Boolean} func
+     * @returns {Array<T>} - All deleted elements
+     * @memberof Store
+     */
+    removeAll(func) {
+        const deleted = [];
+        for (const [key, val] of this.entries() ) {
+            if (func(val, key) ) {
+                deleted.push(val);
+                this.delete(key);
+            }
+        }
+        return deleted;
+    }
+
+    /**
+     * Removes an element from the Store
+     *
+     * @param {String} key - The ID of the object
+     * @returns {T} The removed object, or null if nothing was removed
+     * @memberof Store
+     */
+    remove(key) {
+        const item = this.get(key);
+        if (!item) {
+            return null;
+        }
+        this.delete(key);
+        return item;
     }
 
     /**

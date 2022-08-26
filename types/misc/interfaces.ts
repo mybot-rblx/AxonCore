@@ -1,5 +1,5 @@
 import {
-    CommandOptions, CommandPermissions, LibTextableChannel, LibMember, LibMessage, Command, LibGuild, LibUser, LIBRARY_TYPES, LOGGER_TYPES, DB_TYPES,
+    CommandOptions, CommandPermissions, LibTextableChannel, LibMember, LibMessage, Command, LibGuild, LibUser, LIBRARY_TYPES, LOGGER_TYPES, DB_TYPES, LibEmoji,
     Utils, ALogger, ADBProvider, AxonConfig, GuildConfig, User, Member, Message, Channel, Guild, Resolver, Embed, COMMAND_EXECUTION_TYPES, LibAllowedMentions,
 } from '../';
 // @ts-ignore
@@ -20,6 +20,7 @@ interface ModuleInfo {
      * The module category
      */
     category?: string;
+    [s: string]: unknown;
 }
 
 interface ModuleData {
@@ -167,26 +168,18 @@ interface GuildConfigRaw extends GConfig {
 }
 
 interface CommandInfo {
-    /**
-     * Command authors
-     */
+    /** Command authors */
     owners?: string[];
-    /**
-     * Command description
-     */
+    /** Command description */
     description?: string;
-    /**
-     * Array of command examples
-     */
+    /** Array of command examples */
     examples?: string[];
-    /**
-     * Command usage
-     */
+    /** Command usage */
     usage?: string;
-    /**
-     * Full command name
-     */
+    /** Full command name */
     name?: string;
+    /** Any additional props */
+    [s: string]: unknown;
 }
 
 interface ACommandOptions {
@@ -202,7 +195,7 @@ interface ACommandOptions {
     /**
      * What the invalid usage message should be
      */
-    invalidUsageMessage?: string;
+    invalidUsageMessage?: string | null;
     /**
      * Whether to trigger the help command on invalid usage (not enough arguments)
      */
@@ -233,6 +226,11 @@ interface ACommandOptions {
      * Cooldown between each usage of this command for a specific user (in ms)
      */
     cooldown?: number;
+
+    /**
+     *  Prevents a user from initiating several instances of the same command.
+     */
+    userLock?: boolean;
 }
 
 interface CommandPerms {
@@ -364,7 +362,7 @@ interface CommandData {
     /**
      * Array of subcommand objects (deleted after init)
      */
-    subcmds?: (new (...args: any[] ) => Command)[] | null;
+    subcmds?: (typeof Command)[] | null;
     /**
      * Default info about the command
      */
@@ -372,15 +370,15 @@ interface CommandData {
     /**
      * Options Object for the command (manage all command options)
      */
-    options?: CommandOptions;
+    options?: CommandOptions | ACommandOptions;
     /**
      * Permissions Object for the command (manage all command permissions)
      */
-    permissions?: CommandPermissions;
+    permissions?: CommandPermissions | CommandPerms;
 }
 
 interface AxonTemplate {
-    embeds: {[key: string]: number;};
+    embeds: {[key: string]: number | string;};
     emotes: {[key: string]: string;};
     [key: string]: {[key: string]: unknown;};
 }
@@ -431,18 +429,16 @@ interface APIAxonMSGCont {
 type AxonMSGCont = APIAxonMSGCont | string;
 
 interface AxonMSGOpt {
-    /**
-     * Whether to delete the message or not
-     */
+    /** Whether to delete the message or not */
     delete?: boolean;
-    /**
-     * Custom allowed mentions object
-     */
+    /** Custom allowed mentions object */
     allowedMentions?: LibAllowedMentions;
-    /**
-     * Delay after which the message will be deleted
-     */
-    delay?: number;
+    /** Delay after which the message will be deleted */
+    delay?: number | null;
+    /** Whether the command should trigger cooldown or not */
+    triggerCooldown?: boolean;
+    /** The error that may have occurred */
+    error?: Error | null;
 }
 
 interface PermissionObject {
@@ -570,46 +566,49 @@ interface PromptOptions {
     resendWhenInvalid?: boolean;
 }
 
-interface PromptOptionsData extends PromptOptions {
-    allowed: string[];
-    wildcard: boolean;
-    caseSensitive: boolean;
-    deletePrompt: boolean;
-    sendInvalid: boolean;
-    invalidMessage: string;
-    deleteInvalidMessage: boolean|number;
-    timeoutTime: number;
-    sendTimeout: boolean;
-    timeoutMessage: string;
-    deleteTimeoutMsg: boolean|number;
-    resendWhenInvalid: boolean;
+type PromptOptionsData = Required<PromptOptions>;
+
+interface CollectorContainerSettings<T> {
+    /** The time before the collector times out in milliseconds */
+    timeout?: number|null;
+    /** The amount of elements to collect before automatically ending */
+    count?: number|null;
+    /** Filter function to filter elements that needs to be collected */
+    filter?: (param: T) => boolean;
 }
 
-interface CollectorOptions {
-    /**
-     * The time before the collector times out in milliseconds
-     */
-    timeout?: number;
-    /**
-     * The amount of messages to collect before automatically ending
-     */
-    count?: number;
-    /**
-     * Whether or not to ignore bots
-     */
+interface CollectorContainerSettingsRun<T> extends CollectorContainerSettings<T> {
+    count: number;
+}
+
+interface CollectorOptions<T> extends CollectorContainerSettings<T> {
+    /** Whether or not to ignore bots */
     ignoreBots?: boolean;
-    /**
-     * The user id to listen for (listens to all messages if not specified)
-     */
-    userID?: string;
-    /**
-     * Whether or not to return messages with lowercase content. Default: content unchanged
-     */
-    caseInsensitive?: boolean;
+    /** Whether or not to ignore self */
+    ignoreSelf?: boolean;
 }
 
-interface ReactionCollectorOptions extends CollectorOptions {
-    emojis: string[];
+interface CollectorFullOptions<T> extends CollectorOptions<T> {
+    users?: string[]|string;
+    channels?: string[]|string;
+}
+
+interface ReactionCollectorOptions extends CollectorFullOptions<AxonReaction> {
+    emotes?: string[]|string;
+    messages?: string[]|string;
+}
+
+interface CollectorHelperOptions<T> {
+    timeout: number;
+    count: number;
+    filter?: (param: T) => boolean;
+    users: string[]|string;
+    channels: string[]|string;
+}
+
+interface ReactionCollectorHelperOptions extends CollectorHelperOptions<AxonReaction> {
+    emotes: string[]|string;
+    messages: string[]|string;
 }
 
 interface AxonOptionsSettings {
@@ -649,7 +648,7 @@ interface AOptionsSettings extends AxonOptionsSettings {
 }
 
 interface AxonLanguageResponse {
-    [p: string]: string;
+    [p: string]: AxonLanguageResponse | string;
 }
 
 interface DefaultLanguageResponse extends AxonLanguageResponse {
@@ -658,6 +657,7 @@ interface DefaultLanguageResponse extends AxonLanguageResponse {
     ERR_DESTINATION_PERM: string;
     ERR_COOLDOWN: string;
     ERR_GENERAL: string;
+    [x: string]: DefaultLanguageResponse | string;
 }
 
 interface Languages<L extends AxonLanguageResponse = DefaultLanguageResponse> {
@@ -675,13 +675,13 @@ interface AxonOptionsBase {
      */
     settings?: AxonOptionsSettings;
     /**
-     * Translation file
+     * Translation file/folder
      */
-    lang?: Languages;
+    lang?: Languages | string;
     /**
      * Custom function that will log a custom logo on startup
      */
-    logo?: () => void;
+    logo?: ( () => void) | null;
     /**
      * General info about the bot
      */
@@ -703,14 +703,14 @@ interface AxonOptionsBase {
 interface WebhookConfig { id: string; token: string; }
 
 interface Webhooks {
-    FATAL: WebhookConfig;
-    ERROR: WebhookConfig;
-    WARN: WebhookConfig;
-    DEBUG: WebhookConfig;
-    NOTICE: WebhookConfig;
-    INFO: WebhookConfig;
-    VERBOSE: WebhookConfig;
-    [key: string]: WebhookConfig;
+    FATAL?: WebhookConfig;
+    ERROR?: WebhookConfig;
+    WARN?: WebhookConfig;
+    DEBUG?: WebhookConfig;
+    NOTICE?: WebhookConfig;
+    INFO?: WebhookConfig;
+    VERBOSE?: WebhookConfig;
+    [key: string]: WebhookConfig | undefined;
 }
 
 interface AxonOptionsPrefixes {
@@ -720,6 +720,7 @@ interface AxonOptionsPrefixes {
     admin: string;
     /** Owner prefix */
     owner: string;
+    [s: string]: string;
 }
 
 interface AxonOptionsInfo {
@@ -740,18 +741,24 @@ interface AxonOptionsStaff {
 
 interface AxonOptionsExtensions {
     /** Custom utils. Needs to be an instance of AxonCore.Utils */
-    utils?: new (...args: any[] ) => Utils;
+    utils?: typeof Utils;
     /** Custom logger */
     logger?: ALogger;
     /** DBProvider. Needs to be an instance of DBProvider */
-    DBProvider?: new (...args: any[] ) => ADBProvider;
+    DBProvider?: typeof ADBProvider;
     /** Path to use as default location for usage of the JSONProvider */
     DBLocation?: string;
     /** Custom AxonConfig object to use instead of default AxonConfig */
-    axonConfig?: new (...args: any[] ) => AxonConfig;
+    axonConfig?: typeof AxonConfig;
     /** Custom GuildConfig object to use instead of default GuildConfig */
-    guildConfig?: new (...args: any[] ) => GuildConfig;
+    guildConfig?: typeof GuildConfig;
 }
+
+type UndefinedToNull<T> = {
+    [K in keyof T]-?: T[K] | null;
+}
+
+type AxonExtensions = UndefinedToNull<AxonOptionsExtensions>;
 
 interface AxonConfs {
     /** Webhooks configs with all webhooks id and tokens */
@@ -804,12 +811,12 @@ interface AxonStaffIDs {
 }
 
 interface LibraryInterfaceStructs {
-    User: new (...args: any[] ) => User;
-    Member: new (...args: any[] ) => Member;
-    Message: new (...args: any[] ) => Message;
-    Channel: new (...args: any[] ) => Channel;
-    Guild: new (...args: any[] ) => Guild;
-    Resolver: new (...args: any[] ) => Resolver;
+    User: typeof User;
+    Member: typeof Member;
+    Message: typeof Message;
+    Channel: typeof Channel;
+    Guild: typeof Guild;
+    Resolver: typeof Resolver;
 }
 
 interface PresenceGame {
@@ -908,7 +915,7 @@ interface CommandEnvironmentBase<T extends LibTextableChannel = LibTextableChann
     prefix: string;
     command: Command|string;
     /** The GuildConfig data-structure with all DB saved settings */
-    guildConfig: GuildConfig;
+    guildConfig: GuildConfig | null;
     /** Execution type: admin, owner, regular */
     executionType: COMMAND_EXECUTION_TYPES;
 }
@@ -923,34 +930,43 @@ interface CommandEnvironmentParams extends CommandEnvironmentBase {
     command: Command;
 }
 
-interface CollectorContainer<T> {
-    id: string;
-    collected: Map<string, T>;
-    options: object;
-    resolve<U>(value: U | PromiseLike<U>): Promise<U>;
-    resolve(): Promise<void>;
-    reject<U = never>(reason?: any): Promise<U>;
-}
-
 interface Timeout {
     id: string;
     timeout: number;
 }
 
 interface ExtentionInitReturn {
-    Utils: new (...args: any[] ) => Utils;
-    DBProvider: new (...args: any[] ) => ADBProvider;
-    AxonConfig: new (...args: any[] ) => AxonConfig;
-    GuildConfig: new (...args: any[] ) => GuildConfig;
+    Utils: typeof Utils;
+    DBProvider: typeof ADBProvider;
+    AxonConfig: typeof AxonConfig;
+    GuildConfig: typeof GuildConfig;
     DBLocation: string;
 }
+
+interface EmojiInfo {
+    id: string|null;
+    name: string;
+}
+
+interface AxonReaction<T extends LibTextableChannel = LibTextableChannel> {
+    message: LibMessage<T>;
+    emoji: LibEmoji;
+    userID: string;
+}
+
+type Proxify<T extends AxonLanguageResponse> = {
+    [P in keyof Exclude<T, ReversedNames>]: Exclude<T, ReversedNames>[P] extends string ? (args: AxonLanguageResponse, lang: string) => string : Proxify<Pick<Exclude<T, ReversedNames>, P>>;
+}
+
+type ReversedNames = 'apply' | 'bind' | 'call' | 'toString' | '__defineGetter__' | '__defineSetter__' | '__lookupGetter__'| '__lookupSetter__'
+    | 'hasOwnProperty' | 'isPrototypeOf' | 'propertyIsEnumerable' | 'toLocaleString' | 'toString' | 'valueOf' | 'setPrototypeOf';
 
 export {
     ModuleInfo, ModuleData, AxonJSON, GuildJSON, AConfig, AxonConfigRaw, GConfig, GuildConfigRaw, CommandInfo,
     ACommandOptions, CommandPerms, CommandData, AxonTemplate, ListenerInfo, ListenerData, APIAxonMSGCont, AxonMSGCont, AxonMSGOpt, PermissionObject,
-    Ctx, EmbedFields, EmbedAuthor, EmbedThumbnail, EmbedImage, EmbedFooter, EmbedData, PromptOptions, PromptOptionsData, CollectorOptions, ReactionCollectorOptions,
+    Ctx, EmbedFields, EmbedAuthor, EmbedThumbnail, EmbedImage, EmbedFooter, EmbedData, PromptOptions, PromptOptionsData, CollectorContainerSettings, CollectorOptions, CollectorFullOptions, ReactionCollectorOptions, CollectorHelperOptions, ReactionCollectorHelperOptions,
     AxonOptionsSettings, AOptionsSettings, AxonLanguageResponse, DefaultLanguageResponse, Languages, AxonOptionsBase, WebhookConfig, Webhooks, AxonOptionsPrefixes,
     AxonOptionsInfo, AxonOptionsStaff, AxonOptionsExtensions, AxonConfs, AxonParams, Info, AxonInfo, AxonStaffIDs, LibraryInterfaceStructs, PresenceGame,
     RawAttachment, RawUser, WebhookResponse, DjsContent, DjsWebhookContent, DjsPresenceGame, ErisContent, ErisWebhookContent, ErisPresenceGame,
-    CommandEnvironmentProps, CommandEnvironmentParams, CollectorContainer, Timeout, ExtentionInitReturn,
+    CommandEnvironmentProps, CommandEnvironmentParams, Timeout, ExtentionInitReturn, Proxify, EmojiInfo, AxonReaction, AxonExtensions, CollectorContainerSettingsRun,
 };

@@ -26,6 +26,7 @@ import AxonError from '../../Errors/AxonError';
  * @prop {Boolean} [guildOnly=true] - Whether to allow executing this command outside of guilds
  * @prop {Boolean} [hidden=false] - Whether to hide this command from help command (general / subcommands)
  * @prop {Number} [cooldown=3000] - Cooldown between each usage of this command for a specific user (in ms)
+ * @prop {Boolean} [userLock=false] - One user can only run one instance of the command at a time across all guilds.
  */
 class CommandOptions {
     /**
@@ -43,6 +44,7 @@ class CommandOptions {
      * @param {Boolean} override.guildOnly - Whether to allow executing this command outside of guilds
      * @param {Boolean} override.hidden - Whether to hide this command from help command (general / subcommands)
      * @param {Number} override.cooldown - Cooldown between each usage of this command for a specific user (in ms)
+     * @param {Boolean} override.userLock - One user can only run one instance of the command at a time across all guilds
      * @param {Boolean} [useModuleDefault=false] - Whether to use or not the module's base options before applying override permissions
      * @memberof CommandOptions
      */
@@ -70,7 +72,7 @@ class CommandOptions {
         // invalid permissions
         if (typeof base.invalidPermissionMessage === 'string') {
             /**
-             * @type {() => String}
+             * @type {(channel?: Channel, member?: Member) => String}
              */
             this.invalidPermissionMessage = () => base.invalidPermissionMessage;
         } else if (typeof base.invalidPermissionMessage === 'function') {
@@ -116,6 +118,10 @@ class CommandOptions {
          * @type {Number}
          */
         this.cooldown = (base.cooldown === 0 || base.cooldown === null) ? 0 : (base.cooldown || 3000); // eslint-disable-line no-magic-numbers
+        /**
+         * @type {Boolean}
+         */
+        this.userLock = !!base.userLock;
     }
 
     /**
@@ -137,6 +143,16 @@ class CommandOptions {
      */
     isGuildOnly() {
         return this.guildOnly;
+    }
+
+    /**
+     * Whether the userLock option is enabled or not.
+     *
+     * @returns {Boolean}
+     * @memberof CommandOptions
+     */
+    shouldUserLock() {
+        return this.userLock;
     }
 
     /**
@@ -179,7 +195,7 @@ class CommandOptions {
      * @memberof CommandOptions
      */
     shouldSendInvalidPermissionMessage(guildConfig) {
-        return (!guildConfig.isModOnly() && this.sendPermissionMessage);
+        return guildConfig && (!guildConfig.isModOnly() && this.sendPermissionMessage);
     }
 
     /**

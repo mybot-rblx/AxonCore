@@ -36,6 +36,7 @@ export { default as ListenerLoader } from './src/Core/Loaders/ListenerLoader';
 export { default as ModuleLoader } from './src/Core/Loaders/ModuleLoader';
 
 // Models
+export { default as AModel } from './src/Core/Models/AModel';
 export { default as AxonConfig } from './src/Core/Models/AxonConfig';
 export { default as GuildConfig } from './src/Core/Models/GuildConfig';
 
@@ -71,9 +72,12 @@ export { default as Resolver } from './src/Libraries/definitions/Resolver';
 // Discord
 export { default as Embed } from './src/Utility/Discord/Embed';
 export { default as Prompt } from './src/Utility/Discord/Prompt';
+export { default as NextMessage } from './src/Utility/Discord/NextMessage';
+export { default as NextReaction } from './src/Utility/Discord/NextReaction';
 export { default as Collector } from './src/Utility/Discord/Collectors/Collector';
 export { default as MessageCollector } from './src/Utility/Discord/Collectors/MessageCollector';
 export { default as ReactionCollector } from './src/Utility/Discord/Collectors/ReactionCollector';
+
 // External
 export { default as SortedList } from './src/Utility/External/SortedList';
 export { default as Stack } from './src/Utility/External/Stack';
